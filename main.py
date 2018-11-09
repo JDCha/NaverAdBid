@@ -1,5 +1,7 @@
 from selenium import webdriver
 from openpyxl import load_workbook
+from bs4 import BeautifulSoup
+
 import time
 
 browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
@@ -60,6 +62,12 @@ def naver_login(id, pw, dict_data_list):
         browser.implicitly_wait(1000)
 
         browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
+
+        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
+
+        break
+
+
     #browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[10]/a'.format(keyword=keyword_id)).click()
 
 if __name__ == '__main__':
