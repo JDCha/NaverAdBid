@@ -55,15 +55,30 @@ def naver_login(id, pw, dict_data_list):
             '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
 
         time.sleep(3)
+
         browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
 
         time.sleep(10)
-
         browser.implicitly_wait(1000)
 
         browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
-
         browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
+
+        html = BeautifulSoup(browser.page_source, "html.parser")
+        rank_html = html.find('div',{"class":"scroll-wrap"})
+
+        print(len(rank_html.find_all("div",{"class":"content ng-scope"})))
+
+        time.sleep(5)
+
+        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
+
+        html = BeautifulSoup(browser.page_source, "html.parser")
+        rank_html = html.find('div', {"class": "scroll-wrap"})
+
+        print(len(rank_html.find_all("div", {"class": "content ng-scope"})))
+
+
 
         break
 
