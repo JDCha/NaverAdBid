@@ -111,9 +111,9 @@ def naver_login(id, pw, dict_data_list):
 
         bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id)).clear()
         bid_input_box.send_keys(new_bid)
-        item['current_rank'] = new_bid
+        browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/button[1]'.format(keyword=keyword_id)).click()
 
-        print(item)
+        item['current_rank'] = new_bid
 
         break
 
