@@ -109,13 +109,19 @@ def naver_login(id, pw, dict_data_list):
         browser.execute_script(
             "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
 
-        bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id)).clear()
+        bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
+        bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
-        browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/button[1]'.format(keyword=keyword_id)).click()
 
+        # 변경 버튼 클릭
+        browser.execute_script(
+            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
+
+        time.sleep(2)
+
+        # 변경 알림사항 닫기 버튼
+        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
         item['current_rank'] = new_bid
-
-        break
 
 
 if __name__ == '__main__':
