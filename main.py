@@ -1,7 +1,6 @@
 from selenium import webdriver
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
-
 import time
 
 browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
@@ -87,6 +86,7 @@ def naver_login(id, pw, dict_data_list):
             if item['pc_url'] == pc_rank.find('a',{'class':'lnk_tit ng-binding ng-scope'})['href']:
                 item['current_rank'] = i
 
+        print(item['current_rank'])
         time.sleep(5)
 
         # 모바일 칸으로 이동 및 모바일 광고 개수 크롤링
@@ -98,18 +98,24 @@ def naver_login(id, pw, dict_data_list):
         # 닫기 버튼 눌리기
         browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[1]/div[1]/button/i').click()
 
+        # 입찰 금액 변경 클릭
+        browser.execute_script(
+            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
+
+        bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
+
+        # 현재 입찰 금액 받아오기
+        item['current_bid'] = bid_input_box.get_attribute('value')
+
         # 순위체크
         new_bid = item['current_bid']
+
         if item['current_rank'] < item['hope_rank']:
             new_bid = new_bid - item['plus_minus_money']
         elif item['current_rank'] > item['hope_rank']:
             new_bid = new_bid + item['plus_minus_money']
 
-        # 입찰 금액 변경
-        browser.execute_script(
-            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
 
-        bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
 
@@ -122,6 +128,8 @@ def naver_login(id, pw, dict_data_list):
         # 변경 알림사항 닫기 버튼
         browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
         item['current_rank'] = new_bid
+
+        break
 
 
 if __name__ == '__main__':
