@@ -2,12 +2,16 @@ from selenium import webdriver
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
 import time
+import pandas
 
 browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
 
 
 def load_data_file():
-    wb = load_workbook('/Users/itaegyeong/PycharmProjects/NaverAd/data/data.xlsx')
+
+    #pandas.read_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
+
+    wb = load_workbook('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
     sheet1 = wb['Sheet']
 
     data_list = list(sheet1.rows)
@@ -16,6 +20,8 @@ def load_data_file():
     for index, item in enumerate(data_list):
         if index == 0:
             continue
+        elif item[0].value is None:
+            break
 
         data_dict = {}
         data_dict['group_id'] = item[0].value
@@ -31,8 +37,8 @@ def load_data_file():
         data_dict['plus_minus_money'] = item[10].value
         data_dict['current_rank'] = item[11].value
         data_dict['pc_ad_count'] = item[12].value
-        data_dict['mobile_ad_count'] = item[12].value
-        data_dict['domain'] = item[13].value
+        data_dict['mobile_ad_count'] = item[13].value
+        data_dict['domain'] = item[14].value
 
         dict_data_list.append(data_dict)
 
@@ -45,8 +51,9 @@ def return_html(browser_page_source):
 
 
 def naver_login(id, pw, dict_data_list):
-    browser.get("https://searchad.naver.com")
 
+    # 홈페이지 접속 및 로그인, 광고시스템 클릭
+    browser.get("https://searchad.naver.com")
     browser.find_element_by_xpath('//*[@id="uid"]').send_keys(id)
     browser.find_element_by_xpath('//*[@id="upw"]').send_keys(pw)
     time.sleep(3)
@@ -55,12 +62,14 @@ def naver_login(id, pw, dict_data_list):
     browser.find_element_by_xpath('//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a').click()
     time.sleep(5)
 
+    # 키워드 금액별로 반복문 사용
     for item in dict_data_list:
         keyword_id = item['keyword_id']
 
         browser.switch_to.window(browser.window_handles[1])
         time.sleep(3)
 
+        # 키워드 검색
         browser.find_element_by_xpath(
             '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
 
@@ -68,7 +77,7 @@ def naver_login(id, pw, dict_data_list):
 
         browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
 
-        time.sleep(10)
+        time.sleep(5)
         browser.implicitly_wait(1000)
 
         # 노출 현황보기 클릭
@@ -78,15 +87,15 @@ def naver_login(id, pw, dict_data_list):
         html = return_html(browser.page_source)
         rank_html = html.find('div',{"class":"scroll-wrap"})
 
+        # PC 광고 개수 크롤링
         pc_rank_list = rank_html.find_all("div",{"class":"content ng-scope"})
         item['pc_ad_count'] = len(pc_rank_list)
 
         # 현재 광고 순위 체크
         for i, pc_rank in enumerate(pc_rank_list):
-            if item['pc_url'] == pc_rank.find('a',{'class':'lnk_tit ng-binding ng-scope'})['href']:
+            if item['domain'] == pc_rank.find('a',{'class':'lnk_tit ng-binding ng-scope'})['href']:
                 item['current_rank'] = i
 
-        print(item['current_rank'])
         time.sleep(5)
 
         # 모바일 칸으로 이동 및 모바일 광고 개수 크롤링
@@ -105,7 +114,7 @@ def naver_login(id, pw, dict_data_list):
         bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
 
         # 현재 입찰 금액 받아오기
-        item['current_bid'] = bid_input_box.get_attribute('value')
+        item['current_bid'] = int(bid_input_box.get_attribute('value'))
 
         # 순위체크
         new_bid = item['current_bid']
@@ -115,6 +124,8 @@ def naver_login(id, pw, dict_data_list):
         elif item['current_rank'] > item['hope_rank']:
             new_bid = new_bid + item['plus_minus_money']
 
+        if item['current_rank'] == item['hope_rank']:
+            continue
 
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
@@ -127,9 +138,12 @@ def naver_login(id, pw, dict_data_list):
 
         # 변경 알림사항 닫기 버튼
         browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
-        item['current_rank'] = new_bid
+        item['current_bid'] = new_bid
 
-        break
+        time.sleep(1)
+
+    df = pandas.DataFrame(dict_data_list)  # pandas 사용 l의 데이터프레임화
+    df.to_excel('test_data.xlsx',encoding='utf-8-sig', index=False)
 
 
 if __name__ == '__main__':
