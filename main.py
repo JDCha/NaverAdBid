@@ -1,5 +1,4 @@
 from selenium import webdriver
-from openpyxl import load_workbook
 from bs4 import BeautifulSoup
 import time
 import pandas
@@ -10,7 +9,6 @@ browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chrom
 def load_data_file():
     df = pandas.read_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
     df = df.to_dict('records')
-
     return df
 
 
@@ -102,7 +100,7 @@ def process(id, pw, dict_data_list):
             item['check'] = 'fail'
             continue
         else:
-            item['check'] = 'sucess'
+            item['check'] = 'success'
 
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
@@ -128,6 +126,4 @@ if __name__ == '__main__':
     pw = 'xndjxhvld11'
     data = load_data_file()
     process(id, pw, data)
-
-
 
