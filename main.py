@@ -8,41 +8,10 @@ browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chrom
 
 
 def load_data_file():
+    df = pandas.read_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
+    df = df.to_dict('records')
 
-    #pandas.read_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
-
-    wb = load_workbook('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
-    sheet1 = wb['Sheet']
-
-    data_list = list(sheet1.rows)
-    dict_data_list = list()
-
-    for index, item in enumerate(data_list):
-        if index == 0:
-            continue
-        elif item[0].value is None:
-            break
-
-        data_dict = {}
-        data_dict['group_id'] = item[0].value
-        data_dict['group_name'] = item[1].value
-        data_dict['status'] = item[2].value
-        data_dict['keyword_count'] = item[3].value
-        data_dict['pc_url'] = item[4].value
-        data_dict['mobile_url'] = item[5].value
-        data_dict['keyword_id'] = item[6].value
-        data_dict['keyword_name'] = item[7].value
-        data_dict['current_bid'] = item[8].value
-        data_dict['hope_rank'] = item[9].value
-        data_dict['plus_minus_money'] = item[10].value
-        data_dict['current_rank'] = item[11].value
-        data_dict['pc_ad_count'] = item[12].value
-        data_dict['mobile_ad_count'] = item[13].value
-        data_dict['domain'] = item[14].value
-
-        dict_data_list.append(data_dict)
-
-    return dict_data_list
+    return df
 
 
 def return_html(browser_page_source):
@@ -50,7 +19,7 @@ def return_html(browser_page_source):
     return html
 
 
-def naver_login(id, pw, dict_data_list):
+def process(id, pw, dict_data_list):
 
     # 홈페이지 접속 및 로그인, 광고시스템 클릭
     browser.get("https://searchad.naver.com")
@@ -124,8 +93,16 @@ def naver_login(id, pw, dict_data_list):
         elif item['current_rank'] > item['hope_rank']:
             new_bid = new_bid + item['plus_minus_money']
 
+        # 순위 같으면 변경 안함
         if item['current_rank'] == item['hope_rank']:
             continue
+
+        # 입찰금액보다 오버 됫을 경우 변경 안하고 check항목을 fail로 변경
+        if new_bid > item['max_bid']:
+            item['check'] = 'fail'
+            continue
+        else:
+            item['check'] = 'sucess'
 
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
@@ -143,14 +120,14 @@ def naver_login(id, pw, dict_data_list):
         time.sleep(1)
 
     df = pandas.DataFrame(dict_data_list)  # pandas 사용 l의 데이터프레임화
-    df.to_excel('test_data.xlsx',encoding='utf-8-sig', index=False)
+    df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
 
 
 if __name__ == '__main__':
     id = 'tourtopping'
     pw = 'xndjxhvld11'
     data = load_data_file()
-    naver_login(id, pw, data)
+    process(id, pw, data)
 
 
 
