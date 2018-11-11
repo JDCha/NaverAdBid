@@ -93,14 +93,15 @@ def process(id, pw, dict_data_list):
 
         # 순위 같으면 변경 안함
         if item['current_rank'] == item['hope_rank']:
+            item['check'] = 'rank success'
             continue
 
         # 입찰금액보다 오버 됫을 경우 변경 안하고 check항목을 fail로 변경
         if new_bid > item['max_bid']:
-            item['check'] = 'fail'
+            item['check'] = 'max bid over'
             continue
         else:
-            item['check'] = 'success'
+            item['check'] = 'bid changing'
 
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
