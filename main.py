@@ -100,8 +100,12 @@ def process(id, pw, dict_data_list):
         if new_bid > item['max_bid']:
             item['check'] = 'max bid over'
             continue
+        elif new_bid < 70:
+            item['check'] = '70 이하로 내려갈 수 없습니다'
+            new_bid = 70
         else:
             item['check'] = 'bid changing'
+
 
         bid_input_box.clear()
         bid_input_box.send_keys(new_bid)
