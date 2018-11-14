@@ -112,7 +112,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
             # 순위체크
             new_bid = item['current_bid']
 
-            if item['pc_current_rank'] < item['hope_rank']: # 순위가 높다면
+            if item['pc_current_rank'] < item['hope_rank'] and item['pc_current_rank'] != -1: # 순위가 높다면
                 new_bid = new_bid - item['minus_money']
             elif item['pc_current_rank'] > item['hope_rank'] or item['pc_current_rank'] == -1:
                 new_bid = new_bid + item['plus_money']
