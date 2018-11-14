@@ -2,6 +2,8 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import time
 import pandas
+import datetime
+
 
 browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
 
@@ -17,7 +19,7 @@ def return_html(browser_page_source):
     return html
 
 
-def process(id, pw, dict_data_list):
+def process(id, pw, dict_data_list,start_time, end_time):
 
     # 홈페이지 접속 및 로그인, 광고시스템 클릭
     browser.get("https://searchad.naver.com")
@@ -29,106 +31,128 @@ def process(id, pw, dict_data_list):
     browser.find_element_by_xpath('//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a').click()
     time.sleep(5)
 
-    # 키워드 금액별로 반복문 사용
-    for item in dict_data_list:
-        keyword_id = item['keyword_id']
+    while True:
 
-        browser.switch_to.window(browser.window_handles[1])
-        time.sleep(3)
+        if int(datetime.datetime.now().minute) >= int(end_time.split(":")[1]) and int(datetime.datetime.now().hour) >= int(end_time.split(":")[0]):
+            break
 
-        # 키워드 검색
-        browser.find_element_by_xpath(
-            '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
+        # 키워드 금액별로 반복문 사용
+        for item in dict_data_list:
+            keyword_id = item['keyword_id']
 
-        time.sleep(3)
+            browser.switch_to.window(browser.window_handles[1])
+            time.sleep(3)
 
-        browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
+            # 키워드 검색
+            browser.find_element_by_xpath(
+                '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
 
-        time.sleep(5)
-        browser.implicitly_wait(1000)
+            time.sleep(3)
 
-        # 노출 현황보기 클릭
-        browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
-        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
+            browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
 
-        html = return_html(browser.page_source)
-        rank_html = html.find('div',{"class":"scroll-wrap"})
+            time.sleep(5)
+            browser.implicitly_wait(1000)
 
-        # PC 광고 개수 크롤링
-        pc_rank_list = rank_html.find_all("div",{"class":"content ng-scope"})
-        item['pc_ad_count'] = len(pc_rank_list)
+            # 노출 현황보기 클릭
+            browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
+            browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
 
-        # 현재 광고 순위 체크
-        for i, pc_rank in enumerate(pc_rank_list):
-            if item['domain'] == pc_rank.find('a',{'class':'lnk_tit ng-binding ng-scope'})['href']:
-                item['current_rank'] = i
+            html = return_html(browser.page_source)
+            rank_html = html.find('div',{"class":"scroll-wrap"})
 
-        time.sleep(5)
+            # PC 광고 개수 크롤링
+            pc_rank_list = rank_html.find_all("div",{"class":"content ng-scope"})
+            item['pc_ad_count'] = len(pc_rank_list)
 
-        # 모바일 칸으로 이동 및 모바일 광고 개수 크롤링
-        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
-        html = return_html(browser.page_source)
-        mobile_rank_html = html.find('div', {"class": "scroll-wrap"})
-        item['mobile_ad_count'] = len(mobile_rank_html.find_all("div", {"class": "content ng-scope"}))
+            # 현재 pc 광고 순위 체크
+            for i, pc_rank in enumerate(pc_rank_list):
+                if item['pc_url'] == pc_rank.find('a',{'class':'lnk_url ng-binding'}).text:
+                    item['pc_current_rank'] = i + 1
 
-        # 닫기 버튼 눌리기
-        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[1]/div[1]/button/i').click()
+            time.sleep(5)
 
-        # 입찰 금액 변경 클릭
-        browser.execute_script(
-            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
+            # 모바일 칸으로 이동 및 모바일 광고 개수 크롤링
+            browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
+            html = return_html(browser.page_source)
 
-        bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
+            mobile_rank_html = html.find('div', {"class": "scroll-wrap"})
+            mobile_rank_list = mobile_rank_html.find_all("div", {"class": "content ng-scope"})
 
-        # 현재 입찰 금액 받아오기
-        item['current_bid'] = int(bid_input_box.get_attribute('value'))
+            item['mobile_ad_count'] = len(mobile_rank_list)
 
-        # 순위체크
-        new_bid = item['current_bid']
+            # 현재 mobile 광고 순위 체크
+            for i, mobile_rank in enumerate(mobile_rank_list):
+                if item['mobile_url'] == mobile_rank.find('cite',{'class':'url'}).find('a', {'class': 'ng-binding'}).text:
+                    item['mobile_current_rank'] = i + 1
 
-        if item['current_rank'] < item['hope_rank']:
-            new_bid = new_bid - item['plus_minus_money']
-        elif item['current_rank'] > item['hope_rank']:
-            new_bid = new_bid + item['plus_minus_money']
+            # 닫기 버튼 눌리기
+            browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[1]/div[1]/button/i').click()
 
-        # 순위 같으면 변경 안함
-        if item['current_rank'] == item['hope_rank']:
-            item['check'] = 'rank success'
-            continue
+            # 입찰 금액 변경 클릭
+            browser.execute_script(
+                "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
 
-        # 입찰금액보다 오버 됫을 경우 변경 안하고 check항목을 fail로 변경
-        if new_bid > item['max_bid']:
-            item['check'] = 'max bid over'
-            continue
-        elif new_bid < 70:
-            item['check'] = '70 이하로 내려갈 수 없습니다'
-            new_bid = 70
-        else:
-            item['check'] = 'bid changing'
+            bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
 
+            # 현재 입찰 금액 받아오기
+            item['current_bid'] = int(bid_input_box.get_attribute('value'))
 
-        bid_input_box.clear()
-        bid_input_box.send_keys(new_bid)
+            # 순위체크
+            new_bid = item['current_bid']
 
-        # 변경 버튼 클릭
-        browser.execute_script(
-            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
+            if item['pc_current_rank'] < item['hope_rank']: # 순위가 높다면
+                new_bid = new_bid - item['minus_money']
+            elif item['pc_current_rank'] > item['hope_rank']:
+                new_bid = new_bid + item['plus_money']
 
-        time.sleep(2)
+            # 순위 같으면 변경 안함
+            if item['pc_current_rank'] == item['hope_rank']:
+                item['check'] = 'rank success'
+                continue
 
-        # 변경 알림사항 닫기 버튼
-        browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
-        item['current_bid'] = new_bid
+            # 입찰금액보다 오버 됫을 경우 변경 안하고 check항목을 fail로 변경
+            if new_bid > item['max_bid']:
+                item['check'] = 'max bid over'
+                new_bid = item['max_bid']
+            elif new_bid < 70:
+                item['check'] = '70 이하로 내려갈 수 없습니다'
+                new_bid = 70
+            else:
+                item['check'] = 'bid changing'
 
-        time.sleep(1)
+            bid_input_box.clear()
+            bid_input_box.send_keys(new_bid)
 
-    df = pandas.DataFrame(dict_data_list)  # pandas 사용 l의 데이터프레임화
-    df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
+            # 변경 버튼 클릭
+            browser.execute_script(
+                "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
+
+            time.sleep(2)
+
+            # 변경 알림사항 닫기 버튼
+            browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
+            item['current_bid'] = new_bid
+
+            time.sleep(1)
+
+            df = pandas.DataFrame(dict_data_list, columns=['keyword_id','keyword_name',])  # pandas 사용 l의 데이터프레임화
+            df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
 
 
 if __name__ == '__main__':
     id = 'tourtopping'
     pw = 'xndjxhvld11'
-    data = load_data_file()
-    process(id, pw, data)
+
+    start_time = "14:00"
+    end_time = "16:00"
+
+    while True:
+        now_hour = int(datetime.datetime.now().hour) # 14
+        now_minute = int(datetime.datetime.now().minute) # 01
+
+        if now_hour >= int(start_time.split(":")[0]) and now_minute >= int(start_time.split(":")[1]):
+            data = load_data_file()
+            process(id, pw, data,start_time,end_time)
+            break
 
