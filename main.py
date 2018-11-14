@@ -66,9 +66,15 @@ def process(id, pw, dict_data_list,start_time, end_time):
             item['pc_ad_count'] = len(pc_rank_list)
 
             # 현재 pc 광고 순위 체크
+            flag = False
             for i, pc_rank in enumerate(pc_rank_list):
                 if item['pc_url'] == pc_rank.find('a',{'class':'lnk_url ng-binding'}).text:
                     item['pc_current_rank'] = i + 1
+                    flag = True
+
+            if flag is False:
+                item['pc_current_rank'] = -1
+
 
             time.sleep(5)
 
@@ -82,9 +88,14 @@ def process(id, pw, dict_data_list,start_time, end_time):
             item['mobile_ad_count'] = len(mobile_rank_list)
 
             # 현재 mobile 광고 순위 체크
+            flag = False
             for i, mobile_rank in enumerate(mobile_rank_list):
                 if item['mobile_url'] == mobile_rank.find('cite',{'class':'url'}).find('a', {'class': 'ng-binding'}).text:
                     item['mobile_current_rank'] = i + 1
+                    flag = True
+
+            if flag is False:
+                item['mobile_current_rank'] = -1
 
             # 닫기 버튼 눌리기
             browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[1]/div[1]/button/i').click()
@@ -103,7 +114,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
 
             if item['pc_current_rank'] < item['hope_rank']: # 순위가 높다면
                 new_bid = new_bid - item['minus_money']
-            elif item['pc_current_rank'] > item['hope_rank']:
+            elif item['pc_current_rank'] > item['hope_rank'] or item['pc_current_rank'] == -1:
                 new_bid = new_bid + item['plus_money']
 
             # 순위 같으면 변경 안함
