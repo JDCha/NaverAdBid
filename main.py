@@ -1,3 +1,16 @@
+
+# "시간설정을 했으면좋겠다." = 09:00~18:00/////// 18시00부터 다음날 새벽4시나 다음날아침 9:00 시의설정이 불가한듯하다
+#
+# 0 오류가 뜬다  =  0오류(페이지가 에러가나서)가 뜨면 순위가 없는걸로인식 입찰가를 올린다(입찰가를 올리면안되요)
+#
+# 0 오류를 안뜨게하는 방법은 없을까...0이뜨면 새로고침?
+#
+# 몇시간 테스트결과 마무리 확인창이 안눌러져서 멈춰있는경우를 2~3번 보았다.. 이경우가 없었으면좋겠다
+#
+# 5시간정도 돌아갔는데 3백? 4백 몇백개째에서 메모리부족현상 (현재 8기가) 프로그램이 돌아가지 않았다..(메모리부족화면노출)
+
+
+
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import time
@@ -101,7 +114,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
                     item['mobile_current_rank'] = -1
 
                 # 닫기 버튼 눌리기
-                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[1]/div[1]/button/i').click()
+                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
 
                 # 입찰 금액 변경 클릭
                 browser.execute_script(
@@ -153,14 +166,14 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 df = pandas.DataFrame(dict_data_list, columns=['keyword_id','keyword_name',])  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
 
-            except:
+            except :
                 print("error")
 
 
 
 if __name__ == '__main__':
-    id = 'test'
-    pw = 'test'
+    id = 'tourtopping'
+    pw = 'xndjxhvld11'
 
     start_time = "14:00"
     end_time = "16:00"
