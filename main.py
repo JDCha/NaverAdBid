@@ -5,11 +5,9 @@
 #
 # 0 오류를 안뜨게하는 방법은 없을까...0이뜨면 새로고침?
 #
-# 몇시간 테스트결과 마무리 확인창이 안눌러져서 멈춰있는경우를 2~3번 보았다.. 이경우가 없었으면좋겠다
+# 몇시간 테스트결과 마무리 확인창이 안눌러져서 멈춰있는경우를 2~3번 보았다.. 이 경우가 없었으면좋겠다
 #
 # 5시간정도 돌아갔는데 3백? 4백 몇백개째에서 메모리부족현상 (현재 8기가) 프로그램이 돌아가지 않았다..(메모리부족화면노출)
-
-
 
 from selenium import webdriver
 from bs4 import BeautifulSoup
@@ -57,20 +55,18 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 browser.switch_to.window(browser.window_handles[1])
                 time.sleep(3)
 
-                # 키워드 검색
+                # -------------------- 키워드 검색 --------------------
                 browser.find_element_by_xpath(
                     '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
 
-                time.sleep(3)
+                time.sleep(3) # 검색결과 나온 후 3초 딜레이
 
                 browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
-
-
 
                 time.sleep(5)
                 browser.implicitly_wait(1000)
 
-                # 노출 현황보기 클릭
+                # -------------------- 노출 현황보기 클릭 --------------------
                 browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
 
@@ -80,6 +76,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 # PC 광고 개수 크롤링
                 pc_rank_list = rank_html.find_all("div",{"class":"content ng-scope"})
                 item['pc_ad_count'] = len(pc_rank_list)
+
 
                 # 현재 pc 광고 순위 체크
                 flag = False
@@ -94,7 +91,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
 
                 time.sleep(5)
 
-                # 모바일 칸으로 이동 및 모바일 광고 개수 크롤링
+                # -------------------- 모바일 노출 현황으로 이동 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
                 html = return_html(browser.page_source)
 
@@ -113,10 +110,11 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 if flag is False:
                     item['mobile_current_rank'] = -1
 
-                # 닫기 버튼 눌리기
+                # -------------------- 닫기버튼 클릭 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
 
-                # 입찰 금액 변경 클릭
+
+                # -------------------- 입찰 금액 변경 --------------------
                 browser.execute_script(
                     "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
 
@@ -151,13 +149,13 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 bid_input_box.clear()
                 bid_input_box.send_keys(new_bid)
 
-                # 변경 버튼 클릭
+                # -------------------- 최종 변경 버튼 클릭 --------------------
                 browser.execute_script(
                     "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
 
                 time.sleep(2)
 
-                # 변경 알림사항 닫기 버튼
+                # -------------------- 변경 알림사항 닫기 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
                 item['current_bid'] = new_bid
 
@@ -172,11 +170,12 @@ def process(id, pw, dict_data_list,start_time, end_time):
 
 
 if __name__ == '__main__':
+
     id = 'tourtopping'
     pw = 'xndjxhvld11'
 
     start_time = "14:00"
-    end_time = "16:00"
+    duration = "5" # 5시간 지속 hour 단위
 
     while True:
         now_hour = int(datetime.datetime.now().hour) # 14
@@ -184,6 +183,6 @@ if __name__ == '__main__':
 
         if now_hour >= int(start_time.split(":")[0]) and now_minute >= int(start_time.split(":")[1]):
             data = load_data_file()
-            process(id, pw, data,start_time,end_time)
+            process(id, pw, data, start_time, duration)
             break
 
