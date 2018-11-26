@@ -13,6 +13,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas
 import datetime
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.
@@ -20,6 +21,7 @@ from selenium.webdriver.support import expected_conditions as EC # available sin
 
 class NaverAdSystem:
 
+    # 생성자
     def __init__(self, webdriver_path, data_file_path, id, pw):
         self.browser = webdriver.Chrome(webdriver_path)
 
@@ -48,7 +50,7 @@ class NaverAdSystem:
         except:
             return -1
 
-    # 홈페이지 접속 및 로그인, 광고시스템 클릭
+    # 홈페이지 접속 및 로그인, 광고시스템 클릭 함수
     def naver_login(self, id, pw):
 
         # 홈페이지 접속 및, 로그인화면이 뜰때까지 wait
@@ -70,7 +72,7 @@ class NaverAdSystem:
         # 광고 시스템창으로 탭 이동
         self.browser.switch_to.window(self.browser.window_handles[1])
 
-    # 키워드 검색, 노출현황보기 클릭 후 html 코드 반환
+    # 키워드 검색, 노출현황보기 클릭 후 html 코드 반환 함수
     def search_keyword(self, keyword_id):
         # 키워드를 검색하고, 노출현황보기창이 뜰떄까지 wait
         self.browser.find_element_by_xpath(
@@ -90,7 +92,7 @@ class NaverAdSystem:
         html = self.return_html(self.browser.page_source)
         return html
 
-    # pc 순위 체크 및, 현재 순위 반영
+    # pc 순위 체크 및, 현재 순위 반영 함수
     def pc_rank(self, html, item):
         rank_html = html.find('div', {"class": "scroll-wrap"})
 
@@ -110,7 +112,7 @@ class NaverAdSystem:
 
         self.browser.implicitly_wait(300)
 
-    # mobile 순위 체크 및, 현재 순위 반영
+    # mobile 순위 체크 및, 현재 순위 반영 함수
     def mobile_rank(self, item):
 
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
@@ -137,7 +139,7 @@ class NaverAdSystem:
         # 닫기버튼 클릭
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
 
-
+    # 입찰금액 변경 및 적용 함수
     def bid_change(self, item):
         keyword_id = item['keyword_id']
 
@@ -175,21 +177,18 @@ class NaverAdSystem:
             item['check'] = 'bid changing'
 
         bid_input_box.clear()
-        bid_input_box.send_keys(new_bid)
+        bid_input_box.send_keys(str(new_bid))
 
         # 최종 변경 버튼 클릭
         self.browser.execute_script(
             "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(
                 keyword=keyword_id))
 
-        self.wait('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button', 'xpath', 10)
+        self.browser.implicitly_wait(2500)
 
         # 변경 알림사항 닫기
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
         item['current_bid'] = new_bid
-
-        self.browser.implicitly_wait(500)
-
 
 
     def process(self):
@@ -204,34 +203,17 @@ class NaverAdSystem:
 
                 html = self.search_keyword(keyword_id) # 키워드 검색
                 self.pc_rank(html, item) # pc 광고 개수 및 현재 순위 파악
+                time.sleep(5)
+
                 self.mobile_rank(item) # mobile 광고 개수 및 현재 순위 파악
                 self.bid_change(item) # 입찰 금액 변경
 
                 df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
-                df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
+                df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
 
-
-
-    # if __name__ == '__main__':
-    #
-    #     id = 'tourtopping'
-    #     pw = 'xndjxhvld11'
-    #
-    #     start_time = "10:00"
-    #     duration = "5" # 5시간 지속 hour 단위
-    #
-    #     while True:
-    #         now_hour = int(datetime.datetime.now().hour) # 14
-    #         now_minute = int(datetime.datetime.now().minute) # 01
-    #
-    #         if now_hour >= int(start_time.split(":")[0]) and now_minute >= int(start_time.split(":")[1]):
-    #             data = load_data_file()
-    #             process(id, pw, data, start_time, duration)
-    #             break
-    #
 
 naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver',
-                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx',
+                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test.xlsx',
                                 'tourtopping','xndjxhvld11')
 
 naver_ad_system.process()
