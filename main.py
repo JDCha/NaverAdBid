@@ -1,26 +1,22 @@
 
-# "시간설정을 했으면좋겠다." = 09:00~18:00/////// 18시00부터 다음날 새벽4시나 다음날아침 9:00 시의설정이 불가한듯하다
-#
-# 0 오류가 뜬다  =  0오류(페이지가 에러가나서)가 뜨면 순위가 없는걸로인식 입찰가를 올린다(입찰가를 올리면안되요)
-#
-# 0 오류를 안뜨게하는 방법은 없을까...0이뜨면 새로고침?
-#
-# 몇시간 테스트결과 마무리 확인창이 안눌러져서 멈춰있는경우를 2~3번 보았다.. 이 경우가 없었으면좋겠다
-#
-# 5시간정도 돌아갔는데 3백? 4백 몇백개째에서 메모리부족현상 (현재 8기가) 프로그램이 돌아가지 않았다..(메모리부족화면노출)
-#
-# pass 일경우 그 키워드는 더 이상 검색하지 않는다.
+# NaverAd version 1.1
+# Error 내역
+# 1. 시간 설정 에러 -> 시간과 관련된 에러, 지속시간으로 수정
+# 2. pc 광고 개수를 0개를 가져오는 오류 (창이 안뜸) -> 0이 뜰시 순위가 없는걸로 인식해 입찰가를 올린다 -> 그냥 넘어간다
+# 3. 메모리 에러 (5시간 이상 동작시 메모리 부족 현상)
 
 
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas
-import datetime
-import time
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.
 
+from datetime import datetime
+from datetime import timedelta
+import os, sys, time
 
 class NaverAdSystem:
 
@@ -34,14 +30,33 @@ class NaverAdSystem:
         self.id = id
         self.pw = pw
 
-    def set_time(self, start_time, duration_hour):
-        from datetime import datetime
-        from datetime import timedelta
+        self.start_hour = None
+        self.end_time = None
+        self.repeat = None
 
-        start_time = datetime.strptime(start_time, "%H:%M")
+    def set_repeat(self, repeat):
+        self.repeat = repeat
+
+    def restart(self):
+        executable = sys.executable
+        args = sys.argv[:]
+        args.insert(0, sys.executable)
+
+        time.sleep(1)
+
+        print("메모리 에러 방지를 위한 프로그램 재실행")
+        os.execvp(executable, args)
+
+    def set_time(self, start_hour, duration_hour):
+
+        start_time = datetime.strptime(start_hour, "%H:%M")
         after_h = timedelta(hours=duration_hour)
-        t = start_time + after_h
+        end_hour = start_time + after_h
 
+        self.start_hour = start_hour
+        self.end_time = end_hour
+
+        return end_hour
 
     # html 코드를 Beautifulsoup을 이용해 파싱한 결과로 반환하는 함수
     def return_html(self, browser_page_source):
@@ -209,11 +224,22 @@ class NaverAdSystem:
 
         # 홈페이지 접속 및 로그인, 광고시스템 클릭
         self.naver_login(self.id, self.pw)
+        repeat_count = 0
 
         while True:
 
+            # 끝나는 시간되면 프로그램 반복 종료
+            now = datetime.now().hour
+            if now == self.end_time:
+                break
+
+            # 특정 회만큼 반복해서 작업을 수행했으면, 재실행
+            if repeat_count%int(self.repeat) == 0:
+                self.restart()
+
             for item in self.df:
 
+                # pass 는 키워드 검색 안함
                 if item['pass'] == 'pass':
                     continue
 
@@ -229,11 +255,13 @@ class NaverAdSystem:
                 df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
 
-
-
+            repeat_count = repeat_count + 1
 
 naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver',
                                 '/Users/itaegyeong/PycharmProjects/NaverAd/data/test.xlsx',
                                 'tourtopping','xndjxhvld11')
+
+naver_ad_system.set_time("13:00",5)
+naver_ad_system.set_repeat(3)
 
 naver_ad_system.process()
