@@ -11,7 +11,6 @@
 
 from selenium import webdriver
 from bs4 import BeautifulSoup
-import time
 import pandas
 import datetime
 from selenium.webdriver.common.by import By
@@ -112,7 +111,7 @@ class NaverAdSystem:
         self.browser.implicitly_wait(300)
 
     # mobile 순위 체크 및, 현재 순위 반영
-    def mobile_rank(self, html, item):
+    def mobile_rank(self, item):
 
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
         html = self.return_html(self.browser.page_source)
@@ -133,6 +132,65 @@ class NaverAdSystem:
         if flag is False:
             item['mobile_current_rank'] = -1
 
+        self.wait('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button',"xpath",10)
+
+        # 닫기버튼 클릭
+        self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
+
+
+    def bid_change(self, item):
+        keyword_id = item['keyword_id']
+
+        # 입찰금액 변경
+        self.browser.execute_script(
+            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(
+                keyword=keyword_id))
+
+        bid_input_box = self.browser.find_element_by_xpath(
+            '//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
+
+        # 현재 입찰 금액 받아오기
+        item['current_bid'] = int(bid_input_box.get_attribute('value'))
+
+        # 순위체크 후 새로운 금액 반영
+        new_bid = item['current_bid']
+        if item['pc_current_rank'] < item['hope_rank'] and item['pc_current_rank'] != -1:  # 순위가 높다면
+            new_bid = new_bid - item['minus_money']
+        elif item['pc_current_rank'] > item['hope_rank'] or item['pc_current_rank'] == -1:
+            new_bid = new_bid + item['plus_money']
+
+        # 순위 같으면 변경 안함
+        if item['pc_current_rank'] == item['hope_rank']:
+            item['check'] = 'rank success'
+            return "same"
+
+        # 입찰금액보다 오버 됫을 경우 변경 안하고 check 항목을 fail로 변경
+        if new_bid > item['max_bid']:
+            item['check'] = 'max bid over'
+            new_bid = item['max_bid']
+        elif new_bid < 70:
+            item['check'] = '70 이하로 내려갈 수 없습니다'
+            new_bid = 70
+        else:
+            item['check'] = 'bid changing'
+
+        bid_input_box.clear()
+        bid_input_box.send_keys(new_bid)
+
+        # 최종 변경 버튼 클릭
+        self.browser.execute_script(
+            "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(
+                keyword=keyword_id))
+
+        self.wait('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button', 'xpath', 10)
+
+        # 변경 알림사항 닫기
+        self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
+        item['current_bid'] = new_bid
+
+        self.browser.implicitly_wait(500)
+
+
 
     def process(self):
 
@@ -141,86 +199,16 @@ class NaverAdSystem:
 
         while True:
             for item in self.df:
+
                 keyword_id = item['keyword_id']
+
                 html = self.search_keyword(keyword_id) # 키워드 검색
                 self.pc_rank(html, item) # pc 광고 개수 및 현재 순위 파악
+                self.mobile_rank(item) # mobile 광고 개수 및 현재 순위 파악
+                self.bid_change(item) # 입찰 금액 변경
 
-
-
-                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
-                html = return_html(browser.page_source)
-
-                mobile_rank_html = html.find('div', {"class": "scroll-wrap"})
-                mobile_rank_list = mobile_rank_html.find_all("div", {"class": "content ng-scope"})
-
-                item['mobile_ad_count'] = len(mobile_rank_list)
-
-                # 현재 mobile 광고 순위 체크
-                flag = False
-                for i, mobile_rank in enumerate(mobile_rank_list):
-                    if item['mobile_url'] == mobile_rank.find('cite',{'class':'url'}).find('a', {'class': 'ng-binding'}).text:
-                        item['mobile_current_rank'] = i + 1
-                        flag = True
-
-                if flag is False:
-                    item['mobile_current_rank'] = -1
-
-                # -------------------- 닫기버튼 클릭 --------------------
-                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
-
-
-                # -------------------- 입찰 금액 변경 --------------------
-                browser.execute_script(
-                    "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a').click();".format(keyword=keyword_id))
-
-                bid_input_box = browser.find_element_by_xpath('//*[@id="wgt-{keyword}"]/td[5]/a/div/div/div[2]/div[1]/div/span/input'.format(keyword=keyword_id))
-
-                # 현재 입찰 금액 받아오기
-                item['current_bid'] = int(bid_input_box.get_attribute('value'))
-
-                # 순위체크
-                new_bid = item['current_bid']
-
-                if item['pc_current_rank'] < item['hope_rank'] and item['pc_current_rank'] != -1: # 순위가 높다면
-                    new_bid = new_bid - item['minus_money']
-                elif item['pc_current_rank'] > item['hope_rank'] or item['pc_current_rank'] == -1:
-                    new_bid = new_bid + item['plus_money']
-
-                # 순위 같으면 변경 안함
-                if item['pc_current_rank'] == item['hope_rank']:
-                    item['check'] = 'rank success'
-                    continue
-
-                # 입찰금액보다 오버 됫을 경우 변경 안하고 check항목을 fail로 변경
-                if new_bid > item['max_bid']:
-                    item['check'] = 'max bid over'
-                    new_bid = item['max_bid']
-                elif new_bid < 70:
-                    item['check'] = '70 이하로 내려갈 수 없습니다'
-                    new_bid = 70
-                else:
-                    item['check'] = 'bid changing'
-
-                bid_input_box.clear()
-                bid_input_box.send_keys(new_bid)
-
-                # -------------------- 최종 변경 버튼 클릭 --------------------
-                browser.execute_script(
-                    "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
-
-                browser.implicitly_wait(500)
-
-                # -------------------- 변경 알림사항 닫기 --------------------
-                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
-                item['current_bid'] = new_bid
-
-                browser.implicitly_wait(500)
-
-                df = pandas.DataFrame(dict_data_list, columns=['keyword_id','keyword_name',])  # pandas 사용 l의 데이터프레임화
+                df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
-
-            except :
-                print("error")
 
 
 
