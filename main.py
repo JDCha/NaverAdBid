@@ -245,17 +245,21 @@ class NaverAdSystem:
 
                 keyword_id = item['keyword_id']
 
-                html = self.search_keyword(keyword_id) # 키워드 검색
-                self.pc_rank(html, item) # pc 광고 개수 및 현재 순위 파악
-                time.sleep(5)
+                try:
+                    html = self.search_keyword(keyword_id) # 키워드 검색
+                    self.pc_rank(html, item) # pc 광고 개수 및 현재 순위 파악
+                    time.sleep(5)
 
-                self.mobile_rank(item) # mobile 광고 개수 및 현재 순위 파악
-                self.bid_change(item) # 입찰 금액 변경
+                    self.mobile_rank(item) # mobile 광고 개수 및 현재 순위 파악
+                    self.bid_change(item) # 입찰 금액 변경
 
-                item['time'] = datetime.now()
+                    item['time'] = datetime.now()
 
-                df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
-                df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
+                    df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
+                    df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
+                except:
+                    item['check'] = 'error 발생'
+                    print(item['keyword_id'] + ' 에서 에러 발생')
 
             repeat_count = repeat_count + 1
 
