@@ -41,6 +41,7 @@ class NaverAdSystem:
         executable = sys.executable
         args = sys.argv[:]
         args.insert(0, sys.executable)
+        self.browser.quit()
 
         time.sleep(1)
 
@@ -214,7 +215,8 @@ class NaverAdSystem:
             "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(
                 keyword=keyword_id))
 
-        self.browser.implicitly_wait(2500)
+        time.sleep(3)
+        #self.browser.implicitly_wait(3500)
 
         # 변경 알림사항 닫기
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
@@ -224,7 +226,7 @@ class NaverAdSystem:
 
         # 홈페이지 접속 및 로그인, 광고시스템 클릭
         self.naver_login(self.id, self.pw)
-        repeat_count = 0
+        repeat_count = 1
 
         while True:
 
@@ -264,7 +266,7 @@ class NaverAdSystem:
             repeat_count = repeat_count + 1
 
 naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver', # 웹 드라이버 경로
-                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test.xlsx', # 데이터 엑셀파일
+                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test_beta.xlsx', # 데이터 엑셀파일
                                 'tourtopping','xndjxhvld11')
 
 naver_ad_system.set_time("13:00",5)
