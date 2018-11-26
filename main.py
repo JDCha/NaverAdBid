@@ -8,6 +8,9 @@
 # 몇시간 테스트결과 마무리 확인창이 안눌러져서 멈춰있는경우를 2~3번 보았다.. 이 경우가 없었으면좋겠다
 #
 # 5시간정도 돌아갔는데 3백? 4백 몇백개째에서 메모리부족현상 (현재 8기가) 프로그램이 돌아가지 않았다..(메모리부족화면노출)
+#
+# pass 일경우 그 키워드는 더 이상 검색하지 않는다.
+
 
 from selenium import webdriver
 from bs4 import BeautifulSoup
@@ -30,6 +33,15 @@ class NaverAdSystem:
 
         self.id = id
         self.pw = pw
+
+    def set_time(self, start_time, duration_hour):
+        from datetime import datetime
+        from datetime import timedelta
+
+        start_time = datetime.strptime(start_time, "%H:%M")
+        after_h = timedelta(hours=duration_hour)
+        t = start_time + after_h
+
 
     # html 코드를 Beautifulsoup을 이용해 파싱한 결과로 반환하는 함수
     def return_html(self, browser_page_source):
@@ -99,6 +111,9 @@ class NaverAdSystem:
         # PC 광고 개수 크롤링
         pc_rank_list = rank_html.find_all("div", {"class": "content ng-scope"})
         item['pc_ad_count'] = len(pc_rank_list)
+
+        if item['pc_ad_count'] == 0:
+            return "0 error"
 
         # 현재 pc 광고 순위 체크
         flag = False
@@ -190,14 +205,17 @@ class NaverAdSystem:
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
         item['current_bid'] = new_bid
 
-
     def process(self):
 
         # 홈페이지 접속 및 로그인, 광고시스템 클릭
         self.naver_login(self.id, self.pw)
 
         while True:
+
             for item in self.df:
+
+                if item['pass'] == 'pass':
+                    continue
 
                 keyword_id = item['keyword_id']
 
@@ -210,6 +228,8 @@ class NaverAdSystem:
 
                 df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
+
+
 
 
 naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver',
