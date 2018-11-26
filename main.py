@@ -252,13 +252,15 @@ class NaverAdSystem:
                 self.mobile_rank(item) # mobile 광고 개수 및 현재 순위 파악
                 self.bid_change(item) # 입찰 금액 변경
 
+                item['time'] = datetime.now()
+
                 df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
 
             repeat_count = repeat_count + 1
 
-naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver',
-                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test.xlsx',
+naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver', # 웹 드라이버 경로
+                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test.xlsx', # 데이터 엑셀파일
                                 'tourtopping','xndjxhvld11')
 
 naver_ad_system.set_time("13:00",5)
