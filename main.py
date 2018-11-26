@@ -71,6 +71,68 @@ class NaverAdSystem:
         # 광고 시스템창으로 탭 이동
         self.browser.switch_to.window(self.browser.window_handles[1])
 
+    # 키워드 검색, 노출현황보기 클릭 후 html 코드 반환
+    def search_keyword(self, keyword_id):
+        # 키워드를 검색하고, 노출현황보기창이 뜰떄까지 wait
+        self.browser.find_element_by_xpath(
+            '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
+        self.wait('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a',
+             "xpath", 10)
+        self.browser.find_element_by_xpath(
+            '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
+        self.wait('#wgt-{keyword} > td:nth-child(10) > a'.format(keyword=keyword_id), "css", 10)
+
+        # 노출 현황보기 클릭
+        self.browser.execute_script(
+            "document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
+        self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
+
+        # 노출현황보기창의 코드를 반환
+        html = self.return_html(self.browser.page_source)
+        return html
+
+    # pc 순위 체크 및, 현재 순위 반영
+    def pc_rank(self, html, item):
+        rank_html = html.find('div', {"class": "scroll-wrap"})
+
+        # PC 광고 개수 크롤링
+        pc_rank_list = rank_html.find_all("div", {"class": "content ng-scope"})
+        item['pc_ad_count'] = len(pc_rank_list)
+
+        # 현재 pc 광고 순위 체크
+        flag = False
+        for i, pc_rank in enumerate(pc_rank_list):
+            if item['pc_url'] == pc_rank.find('a', {'class': 'lnk_url ng-binding'}).text:
+                item['pc_current_rank'] = i + 1
+                flag = True
+
+        if flag is False:
+            item['pc_current_rank'] = -1
+
+        self.browser.implicitly_wait(300)
+
+    # mobile 순위 체크 및, 현재 순위 반영
+    def mobile_rank(self, html, item):
+
+        self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
+        html = self.return_html(self.browser.page_source)
+
+        mobile_rank_html = html.find('div', {"class": "scroll-wrap"})
+        mobile_rank_list = mobile_rank_html.find_all("div", {"class": "content ng-scope"})
+
+        # mobile 광고 개수 크롤링
+        item['mobile_ad_count'] = len(mobile_rank_list)
+
+        # 현재 mobile 광고 순위 체크
+        flag = False
+        for i, mobile_rank in enumerate(mobile_rank_list):
+            if item['mobile_url'] == mobile_rank.find('cite', {'class': 'url'}).find('a', {'class': 'ng-binding'}).text:
+                item['mobile_current_rank'] = i + 1
+                flag = True
+
+        if flag is False:
+            item['mobile_current_rank'] = -1
+
 
     def process(self):
 
@@ -80,45 +142,11 @@ class NaverAdSystem:
         while True:
             for item in self.df:
                 keyword_id = item['keyword_id']
+                html = self.search_keyword(keyword_id) # 키워드 검색
+                self.pc_rank(html, item) # pc 광고 개수 및 현재 순위 파악
 
 
-                time.sleep(3)
 
-                # -------------------- 키워드 검색 --------------------
-                browser.find_element_by_xpath(
-                    '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
-                wait(browser, '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a',"xpath")
-
-
-                browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
-                wait(browser,'#wgt-{keyword} > td:nth-child(10) > a'.format(keyword=keyword_id),"css")
-
-                # -------------------- 노출 현황보기 클릭 --------------------
-                browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
-                browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[2]/div[3]')
-
-                html = return_html(browser.page_source)
-                rank_html = html.find('div',{"class":"scroll-wrap"})
-
-                # PC 광고 개수 크롤링
-                pc_rank_list = rank_html.find_all("div",{"class":"content ng-scope"})
-                item['pc_ad_count'] = len(pc_rank_list)
-
-
-                # 현재 pc 광고 순위 체크
-                flag = False
-                for i, pc_rank in enumerate(pc_rank_list):
-                    if item['pc_url'] == pc_rank.find('a',{'class':'lnk_url ng-binding'}).text:
-                        item['pc_current_rank'] = i + 1
-                        flag = True
-
-                if flag is False:
-                    item['pc_current_rank'] = -1
-
-
-                browser.implicitly_wait(500)
-
-                # -------------------- 모바일 노출 현황으로 이동 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
                 html = return_html(browser.page_source)
 
