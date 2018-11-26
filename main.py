@@ -14,6 +14,10 @@ from bs4 import BeautifulSoup
 import time
 import pandas
 import datetime
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
+from selenium.webdriver.support import expected_conditions as EC # available since 2.26.
+
 
 browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
 
@@ -29,17 +33,32 @@ def return_html(browser_page_source):
     return html
 
 
+def wait(browser, code, division):
+    my_division = By.CSS_SELECTOR
+    if division == "xpath":
+        my_division = By.XPATH
+    try:
+        element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((my_division, code)))
+    except:
+        return -1
+
+
 def process(id, pw, dict_data_list,start_time, end_time):
 
     # 홈페이지 접속 및 로그인, 광고시스템 클릭
     browser.get("https://searchad.naver.com")
+    wait(browser, '//*[@id="uid"]', "xpath")
+
     browser.find_element_by_xpath('//*[@id="uid"]').send_keys(id)
     browser.find_element_by_xpath('//*[@id="upw"]').send_keys(pw)
-    time.sleep(3)
+    wait(browser,'//*[@id="container"]/main/div/div[1]/home-login/div/fieldset/span/button',"xpath")
+
     browser.find_element_by_xpath('//*[@id="container"]/main/div/div[1]/home-login/div/fieldset/span/button').click()
-    time.sleep(3)
+    wait(browser, '//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a', "xpath")
+
     browser.find_element_by_xpath('//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a').click()
-    time.sleep(5)
+
+    browser.implicitly_wait(3000)
 
     while True:
 
@@ -58,13 +77,11 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 # -------------------- 키워드 검색 --------------------
                 browser.find_element_by_xpath(
                     '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/div/input').send_keys(keyword_id)
+                wait(browser, '//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a',"xpath")
 
-                time.sleep(3) # 검색결과 나온 후 3초 딜레이
 
                 browser.find_element_by_xpath('//*[@id="wrap"]/div/div/div[1]/div[2]/div/div[2]/div/div/div/form/ul/div/div/div/div/ul/li/a').click()
-
-                time.sleep(5)
-                browser.implicitly_wait(1000)
+                wait(browser,'#wgt-{keyword} > td:nth-child(10) > a'.format(keyword=keyword_id),"css")
 
                 # -------------------- 노출 현황보기 클릭 --------------------
                 browser.execute_script("document.querySelector('#wgt-{keyword} > td:nth-child(10) > a').click();".format(keyword=keyword_id))
@@ -89,7 +106,7 @@ def process(id, pw, dict_data_list,start_time, end_time):
                     item['pc_current_rank'] = -1
 
 
-                time.sleep(5)
+                browser.implicitly_wait(500)
 
                 # -------------------- 모바일 노출 현황으로 이동 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[2]/div[1]/ul/li[2]/a').click()
@@ -153,13 +170,13 @@ def process(id, pw, dict_data_list,start_time, end_time):
                 browser.execute_script(
                     "document.querySelector('#wgt-{keyword} > td.cell-bid-amt.text-right.txt-r > a > div > div > div.popover-content > div.form-inline > div > button.btn.btn-primary.editable-submit').click();".format(keyword=keyword_id))
 
-                time.sleep(2)
+                browser.implicitly_wait(500)
 
                 # -------------------- 변경 알림사항 닫기 --------------------
                 browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
                 item['current_bid'] = new_bid
 
-                time.sleep(1)
+                browser.implicitly_wait(500)
 
                 df = pandas.DataFrame(dict_data_list, columns=['keyword_id','keyword_name',])  # pandas 사용 l의 데이터프레임화
                 df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx', encoding='utf-8-sig', index=False)
