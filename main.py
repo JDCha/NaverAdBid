@@ -19,59 +19,69 @@ from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.
 
 
-browser = webdriver.Chrome("/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver")
+class NaverAdSystem:
 
+    def __init__(self, webdriver_path, data_file_path, id, pw):
+        self.browser = webdriver.Chrome(webdriver_path)
 
-def load_data_file():
-    df = pandas.read_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx')
-    df = df.to_dict('records')
-    return df
+        self.df = pandas.read_excel(data_file_path)
+        self.df = self.df.to_dict('records')
 
+        self.id = id
+        self.pw = pw
 
-def return_html(browser_page_source):
-    html = BeautifulSoup(browser_page_source, "html.parser")
-    return html
+    # html 코드를 Beautifulsoup을 이용해 파싱한 결과로 반환하는 함수
+    def return_html(self, browser_page_source):
+        html = BeautifulSoup(browser_page_source, "html.parser")
+        return html
 
+    # 딜레이 함수
+    def wait(self, code, division, delay_second):
+        if division == "xpath":
+            my_division = By.XPATH
+        elif division == "css":
+            my_division = By.CSS_SELECTOR
+        else:
+            my_division = By.CLASS_NAME
 
-def wait(browser, code, division):
-    my_division = By.CSS_SELECTOR
-    if division == "xpath":
-        my_division = By.XPATH
-    try:
-        element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((my_division, code)))
-    except:
-        return -1
-
-
-def process(id, pw, dict_data_list,start_time, end_time):
+        try:
+            element = WebDriverWait(self.browser, delay_second).until(EC.presence_of_element_located((my_division, code)))
+        except:
+            return -1
 
     # 홈페이지 접속 및 로그인, 광고시스템 클릭
-    browser.get("https://searchad.naver.com")
-    wait(browser, '//*[@id="uid"]', "xpath")
+    def naver_login(self, id, pw):
 
-    browser.find_element_by_xpath('//*[@id="uid"]').send_keys(id)
-    browser.find_element_by_xpath('//*[@id="upw"]').send_keys(pw)
-    wait(browser,'//*[@id="container"]/main/div/div[1]/home-login/div/fieldset/span/button',"xpath")
+        # 홈페이지 접속 및, 로그인화면이 뜰때까지 wait
+        self.browser.get("https://searchad.naver.com")
+        self.wait('//*[@id="uid"]', "xpath", 10)
 
-    browser.find_element_by_xpath('//*[@id="container"]/main/div/div[1]/home-login/div/fieldset/span/button').click()
-    wait(browser, '//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a', "xpath")
+        # 아이디와 비밀번호 입력 후 로그인, 광고 시스템창이 뜰때까지 wait
+        self.browser.find_element_by_xpath('//*[@id="uid"]').send_keys(id)
+        self.browser.find_element_by_xpath('//*[@id="upw"]').send_keys(pw)
+        self.browser.find_element_by_xpath(
+            '//*[@id="container"]/main/div/div[1]/home-login/div/fieldset/span/button').click()
+        self.wait('//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a', "xpath", 10)
 
-    browser.find_element_by_xpath('//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a').click()
+        # 광고 시스템창 클릭 후 혹시모를 에러를 대비해 1초 wait
+        self.browser.find_element_by_xpath(
+            '//*[@id="container"]/my-screen/div/div[1]/div/my-screen-board/div/div[1]/ul/li[1]/a').click()
+        self.browser.implicitly_wait(1000)
 
-    browser.implicitly_wait(3000)
+        # 광고 시스템창으로 탭 이동
+        self.browser.switch_to.window(self.browser.window_handles[1])
 
-    while True:
 
-        if int(datetime.datetime.now().minute) >= int(end_time.split(":")[1]) and int(datetime.datetime.now().hour) >= int(end_time.split(":")[0]):
-            break
+    def process(self):
 
-        # 키워드 금액별로 반복문 사용
-        for item in dict_data_list:
+        # 홈페이지 접속 및 로그인, 광고시스템 클릭
+        self.naver_login(self.id, self.pw)
 
-            try:
+        while True:
+            for item in self.df:
                 keyword_id = item['keyword_id']
 
-                browser.switch_to.window(browser.window_handles[1])
+
                 time.sleep(3)
 
                 # -------------------- 키워드 검색 --------------------
@@ -186,20 +196,26 @@ def process(id, pw, dict_data_list,start_time, end_time):
 
 
 
-if __name__ == '__main__':
+    # if __name__ == '__main__':
+    #
+    #     id = 'tourtopping'
+    #     pw = 'xndjxhvld11'
+    #
+    #     start_time = "10:00"
+    #     duration = "5" # 5시간 지속 hour 단위
+    #
+    #     while True:
+    #         now_hour = int(datetime.datetime.now().hour) # 14
+    #         now_minute = int(datetime.datetime.now().minute) # 01
+    #
+    #         if now_hour >= int(start_time.split(":")[0]) and now_minute >= int(start_time.split(":")[1]):
+    #             data = load_data_file()
+    #             process(id, pw, data, start_time, duration)
+    #             break
+    #
 
-    id = 'tourtopping'
-    pw = 'xndjxhvld11'
+naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver',
+                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test_data.xlsx',
+                                'tourtopping','xndjxhvld11')
 
-    start_time = "14:00"
-    duration = "5" # 5시간 지속 hour 단위
-
-    while True:
-        now_hour = int(datetime.datetime.now().hour) # 14
-        now_minute = int(datetime.datetime.now().minute) # 01
-
-        if now_hour >= int(start_time.split(":")[0]) and now_minute >= int(start_time.split(":")[1]):
-            data = load_data_file()
-            process(id, pw, data, start_time, duration)
-            break
-
+naver_ad_system.process()
