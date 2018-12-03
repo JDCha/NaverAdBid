@@ -18,7 +18,8 @@ from datetime import datetime
 from datetime import timedelta
 import os, sys, time
 
-class NaverAdSystem:
+
+class NaverAdSystem(object):
 
     # 생성자
     def __init__(self, webdriver_path, data_file_path, id, pw):
@@ -47,6 +48,7 @@ class NaverAdSystem:
 
         print("메모리 에러 방지를 위한 프로그램 재실행")
         os.execvp(executable, args)
+
 
     def set_time(self, start_hour, duration_hour):
 
@@ -233,13 +235,19 @@ class NaverAdSystem:
             # 끝나는 시간되면 프로그램 반복 종료
             now = datetime.now().hour
             if now == self.end_time:
+                fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt', 'w', encoding='utf-8')
+                fp.write('1')
                 break
 
-            # 특정 회만큼 반복해서 작업을 수행했으면, 재실행
-            if repeat_count%int(self.repeat) == 0:
-                self.restart()
 
-            for item in self.df:
+            fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt','r',encoding='utf-8')
+            repeat = int(fp.read().replace('\n',''))
+            fp.close()
+
+
+            for i in range(repeat, len(self.df)):
+
+                item = self.df[i]
 
                 # pass 는 키워드 검색 안함
                 if item['pass'] == 'pass':
@@ -263,13 +271,21 @@ class NaverAdSystem:
                     item['check'] = 'error 발생'
                     print(item['keyword_id'] + ' 에서 에러 발생')
 
-            repeat_count = repeat_count + 1
+                repeat_count = repeat_count + 1
+
+                if self.repeat%repeat_count == 0: # 프로그램을 재실행
+                    fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt','w',encoding='utf-8')
+                    fp.write(str(i))
+                    fp.close()
+                    self.restart()
+
+
 
 naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver', # 웹 드라이버 경로
                                 '/Users/itaegyeong/PycharmProjects/NaverAd/data/test_beta.xlsx', # 데이터 엑셀파일
                                 'tourtopping','xndjxhvld11')
 
-naver_ad_system.set_time("13:00",5)
-naver_ad_system.set_repeat(3)
+naver_ad_system.set_time("20:00",5)
+naver_ad_system.set_repeat(3) # 3을 입력하면 2회씩 반복합니다.
 
 naver_ad_system.process()
