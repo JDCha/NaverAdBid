@@ -1,11 +1,3 @@
-
-# NaverAd version 1.1
-# Error 내역
-# 1. 시간 설정 에러 -> 시간과 관련된 에러, 지속시간으로 수정
-# 2. pc 광고 개수를 0개를 가져오는 오류 (창이 안뜸) -> 0이 뜰시 순위가 없는걸로 인식해 입찰가를 올린다 -> 그냥 넘어간다
-# 3. 메모리 에러 (5시간 이상 동작시 메모리 부족 현상)
-
-
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas
@@ -57,9 +49,9 @@ class NaverAdSystem(object):
         end_hour = start_time + after_h
 
         self.start_hour = start_hour
-        self.end_time = end_hour
+        self.end_time = end_hour.hour
 
-        return end_hour
+        return self.end_time
 
     # html 코드를 Beautifulsoup을 이용해 파싱한 결과로 반환하는 함수
     def return_html(self, browser_page_source):
@@ -167,6 +159,9 @@ class NaverAdSystem(object):
         if flag is False:
             item['mobile_current_rank'] = -1
 
+        time.sleep(3)
+        self.browser.implicitly_wait(1000)
+
         self.wait('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button',"xpath",10)
 
         # 닫기버튼 클릭
@@ -218,7 +213,9 @@ class NaverAdSystem(object):
                 keyword=keyword_id))
 
         time.sleep(3)
-        #self.browser.implicitly_wait(3500)
+        self.browser.implicitly_wait(1500)
+
+        self.wait('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button', "xpath", 10) # code add
 
         # 변경 알림사항 닫기
         self.browser.find_element_by_xpath('//*[@id="wrap"]/div[1]/div/div/div/div[3]/button').click()
@@ -233,19 +230,29 @@ class NaverAdSystem(object):
         while True:
 
             # 끝나는 시간되면 프로그램 반복 종료
-            now = datetime.now().hour
-            if now == self.end_time:
-                fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt', 'w', encoding='utf-8')
+            now = int(datetime.now().hour)
+            if now == int(self.end_time):
+                fp = open('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp21/Data/r.txt', 'w', encoding='utf-8')
                 fp.write('1')
+                exit(0)
                 break
 
 
-            fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt','r',encoding='utf-8')
+            fp = open('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/r.txt','r',encoding='utf-8')
             repeat = int(fp.read().replace('\n',''))
             fp.close()
 
 
             for i in range(repeat, len(self.df)):
+
+                # 끝나는 시간되면 프로그램 반복 종료
+                now = int(datetime.now().hour)
+                if now == int(self.end_time):
+                    fp = open('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp21/Data/r.txt', 'w',
+                              encoding='utf-8')
+                    fp.write('1')
+                    exit(0)
+
 
                 item = self.df[i]
 
@@ -265,8 +272,8 @@ class NaverAdSystem(object):
 
                     item['time'] = datetime.now()
 
-                    df = pandas.DataFrame(self.df)  # pandas 사용 l의 데이터프레임화
-                    df.to_excel('/Users/itaegyeong/PycharmProjects/NaverAd/data/test_result.xlsx', encoding='utf-8-sig', index=False)
+                    df = pandas.DataFrame(self.df,columns=['pc_url','mobile_url','group_name','keyword_id','keyword_name','hope_rank','plus_money','minus_money','max_bid','current_bid','check','pc_ad_count','pc_current_rank','mobile_ad_count','mobile_current_rank','pass','time'])  # pandas 사용 l의 데이터프레임화)  # pandas 사용 l의 데이터프레임화
+                    df.to_excel('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/Pm_Tp_Data.xlsx', encoding='utf-8-sig', index=False)
                 except:
                     item['check'] = 'error 발생'
                     print(item['keyword_id'] + ' 에서 에러 발생')
@@ -274,18 +281,21 @@ class NaverAdSystem(object):
                 repeat_count = repeat_count + 1
 
                 if self.repeat%repeat_count == 0: # 프로그램을 재실행
-                    fp = open('/Users/itaegyeong/PycharmProjects/NaverAd/data/r.txt','w',encoding='utf-8')
-                    fp.write(str(i))
+                    fp = open('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/r.txt','w',encoding='utf-8')
+                    fp.write(str(i + 1))
                     fp.close()
                     self.restart()
 
+            fp = open('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/r.txt', 'w', encoding='utf-8')
+            fp.write('1')
+            fp.close()
 
 
-naver_ad_system = NaverAdSystem('/Users/itaegyeong/PycharmProjects/NaverAd/data/chromedriver', # 웹 드라이버 경로
-                                '/Users/itaegyeong/PycharmProjects/NaverAd/data/test_beta.xlsx', # 데이터 엑셀파일
+naver_ad_system = NaverAdSystem('/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/chromedriver', # 웹 드라이버 경로
+                                '/Users/pro.123/PycharmProjects/Python/A_Naver_Ad_Selenium_Pm_Tp/Data/Pm_Tp_Data.xlsx', # 데이터 엑셀파일
                                 'tourtopping','xndjxhvld11')
 
-naver_ad_system.set_time("20:00",5)
-naver_ad_system.set_repeat(3) # 3을 입력하면 2회씩 반복합니다.
+naver_ad_system.set_time("18:00",4)
+naver_ad_system.set_repeat(101)
 
 naver_ad_system.process()
